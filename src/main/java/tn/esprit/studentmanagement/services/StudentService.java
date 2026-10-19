@@ -16,5 +16,6 @@ public class StudentService implements IStudentService {
     public Student getStudentById(Long id) { return studentRepository.findById(id).orElse(null); }
     public Student saveStudent(Student student) { return studentRepository.save(student); }
     public void deleteStudent(Long id) { studentRepository.deleteById(id); }
+    public Student getStudentByEmail(String email) { return studentRepository.findByEmail(email).orElse(null); }
 
 }

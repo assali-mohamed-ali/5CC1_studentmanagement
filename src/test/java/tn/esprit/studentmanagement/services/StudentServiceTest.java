@@ -104,4 +104,25 @@ class StudentServiceTest {
 
         verify(studentRepository, times(1)).deleteById(1L);
     }
+
+    @Test
+    void getStudentByEmail_retourneLEtudiant() {
+        when(studentRepository.findByEmail("amira.bensalah@esprit.tn")).thenReturn(Optional.of(student));
+
+        Student result = studentService.getStudentByEmail("amira.bensalah@esprit.tn");
+
+        assertEquals(student, result);
+        assertEquals("amira.bensalah@esprit.tn", result.getEmail());
+        verify(studentRepository, times(1)).findByEmail("amira.bensalah@esprit.tn");
+    }
+
+    @Test
+    void getStudentByEmail_inexistant_retourneNull() {
+        when(studentRepository.findByEmail("inconnu@esprit.tn")).thenReturn(Optional.empty());
+
+        Student result = studentService.getStudentByEmail("inconnu@esprit.tn");
+
+        assertNull(result);
+        verify(studentRepository, times(1)).findByEmail("inconnu@esprit.tn");
+    }
 }
