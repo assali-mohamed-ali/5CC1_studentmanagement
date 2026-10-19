@@ -1,44 +1,81 @@
 pipeline {
   agent any
-  tools { jdk 'JDK17'; maven 'M2_HOME' }
-  triggers { pollSCM('H/5 * * * *') }
+  tools {
+    jdk 'JDK17'
+    maven 'M2_HOME'
+  }
   environment {
-    IMAGE_NAME = 'dalyasseli/student-management'
-    IMAGE_TAG = "${env.BUILD_NUMBER}"
+    DOCKERHUB_USER = 'dalyasseli'
+    IMAGE = 'dalyasseli/student-management'
+  }
+  triggers {
+    pollSCM('H/5 * * * *')
   }
   stages {
-    stage('Commit') {
+    stage('Git') {
       steps {
-        git branch: 'main', url: 'https://github.com/assali-mohamed-ali/student-management.git'
-        sh "git log -1 --pretty=format:'%h - %an : %s'"
+        checkout scm
+        script {
+          env.BRANCHE = (env.GIT_BRANCH ?: 'main').replaceAll('^origin/', '')
+          env.TAG = "${env.BRANCHE}-${env.BUILD_NUMBER}"
+        }
+        sh 'git log -1 --pretty=format:"%h - %an : %s"'
+        echo "Branche : ${env.BRANCHE} - tag de l image : ${env.TAG}"
       }
     }
     stage('Build') {
-      steps { sh 'mvn -B clean package -DskipTests' }
+      steps {
+        sh 'mvn -B clean package -DskipTests'
+      }
     }
     stage('Test unitaire') {
-      steps { sh 'mvn -B test' }
-      post { always { junit 'target/surefire-reports/*.xml' } }
-    }
-    stage('Docker Build') {
-      steps { sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG -t $IMAGE_NAME:latest .' }
-    }
-    stage('Docker Push') {
       steps {
-        withCredentials([usernamePassword(credentialsId: 'dockerhubcredentials', usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
-          sh 'echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin'
-          sh 'docker push $IMAGE_NAME:$IMAGE_TAG'
-          sh 'docker push $IMAGE_NAME:latest'
+        sh 'mvn -B test'
+      }
+      post {
+        always {
+          junit 'target/surefire-reports/*.xml'
         }
+      }
+    }
+    stage('Docker build') {
+      steps {
+        sh "docker build -t ${IMAGE}:${TAG} ."
+      }
+    }
+    stage('Docker push') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
+          sh 'echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin'
+          sh "docker push ${IMAGE}:${TAG}"
+          script {
+            if (env.BRANCHE == 'main') {
+              sh "docker tag ${IMAGE}:${TAG} ${IMAGE}:latest"
+              sh "docker push ${IMAGE}:latest"
+            }
+          }
+          sh 'docker logout'
+        }
+      }
+    }
+    stage('Deploiement') {
+      when { expression { env.BRANCHE == 'main' } }
+      steps {
+        sh 'docker compose pull app'
+        sh 'docker compose up -d'
       }
     }
   }
   post {
     success {
       archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
-      echo 'Pipeline reussi : le jar est archive et l image est publiee sur Docker Hub.'
+      echo "Succes : image ${IMAGE}:${TAG} publiee sur Docker Hub."
     }
-    failure { echo 'Pipeline en echec : consulter la Console Output et Test Result.' }
-    always { sh 'docker logout || true' }
+    failure {
+      echo 'Echec : consulter la Console Output du stage en rouge.'
+    }
+    always {
+      sh "docker image rm -f ${IMAGE}:${TAG} || true"
+    }
   }
 }
