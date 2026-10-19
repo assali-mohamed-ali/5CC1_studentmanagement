@@ -1,16 +1,16 @@
 package tn.esprit.studentmanagement.services;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import tn.esprit.studentmanagement.repositories.EnrollmentRepository;
 import tn.esprit.studentmanagement.entities.Enrollment;
 import java.util.List;
 
 @Service
+@AllArgsConstructor
 public class EnrollmentService implements IEnrollment {
-    @Autowired
-    EnrollmentRepository enrollmentRepository;
+    private final EnrollmentRepository enrollmentRepository;
 
     @Override
     public List<Enrollment> getAllEnrollments() {
@@ -19,7 +19,8 @@ public class EnrollmentService implements IEnrollment {
 
     @Override
     public Enrollment getEnrollmentById(Long idEnrollment) {
-        return enrollmentRepository.findById(idEnrollment).orElse(null);
+        return enrollmentRepository.findById(idEnrollment)
+                .orElseThrow(() -> new EntityNotFoundException("Inscription " + idEnrollment + " introuvable"));
     }
 
     @Override
