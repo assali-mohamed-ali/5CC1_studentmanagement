@@ -12,10 +12,11 @@ import tn.esprit.studentmanagement.repositories.EnrollmentRepository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -64,12 +65,10 @@ class EnrollmentServiceTest {
     }
 
     @Test
-    void getEnrollmentById_inexistant_retourneNull() {
+    void getEnrollmentById_inexistant_leveNoSuchElementException() {
         when(enrollmentRepository.findById(99L)).thenReturn(Optional.empty());
 
-        Enrollment result = enrollmentService.getEnrollmentById(99L);
-
-        assertNull(result);
+        assertThrows(NoSuchElementException.class, () -> enrollmentService.getEnrollmentById(99L));
         verify(enrollmentRepository, times(1)).findById(99L);
     }
 
