@@ -12,7 +12,7 @@ import tn.esprit.studentmanagement.repositories.EnrollmentRepository;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.NoSuchElementException;
+import jakarta.persistence.EntityNotFoundException;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -65,10 +65,10 @@ class EnrollmentServiceTest {
     }
 
     @Test
-    void getEnrollmentById_inexistant_leveNoSuchElementException() {
+    void getEnrollmentById_inexistant_leveEntityNotFoundException() {
         when(enrollmentRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThrows(NoSuchElementException.class, () -> enrollmentService.getEnrollmentById(99L));
+        assertThrows(EntityNotFoundException.class, () -> enrollmentService.getEnrollmentById(99L));
         verify(enrollmentRepository, times(1)).findById(99L);
     }
 
